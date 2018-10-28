@@ -4,7 +4,7 @@
 用法
 ```python
 import isPLC
-plc = isPLC.ClassCGS_isPLC()
+plc = isPLC.isPLC.ClassCGS_isPLC()
 
 #指定設備ID
 #plc = isPLC.ClassCGS_isPLC(0x02)
