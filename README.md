@@ -1,6 +1,13 @@
 # py-isPLC
 一個isPLC的Python模組(modbus版本)
 
+目前可用方法:
+
+```python
+Read_coil()
+```
+目前能夠讀取 M 、 Y 、X 、T
+
 用法
 ```python
 import isPLC
