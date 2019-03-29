@@ -51,9 +51,8 @@ plc.Write_coils('Y',0,4,7)
 	#也就是
 	#Y2		Y3		Y4		Y5
 	#LOW	HIGH	HIGH	LOW
-	
-	
-	
+
+
 ## 七段顯示器 0~9 9~0 重複
 
 while 1:
@@ -66,7 +65,7 @@ while 1:
     time.sleep(0.5)
 	
 ## 7447 接腳 -> 
-###-Y	0	1	2	3
+###	Y	0	1	2	3
 ###	A	B	C	D
 	
 
