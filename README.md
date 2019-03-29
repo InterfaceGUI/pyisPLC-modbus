@@ -41,7 +41,7 @@ plc.Write_coil('Y',2,False)
 plc.Write_coils('Y',0,4,7)
 	#也就是 Y0開始 共 4 個 ；7 轉 2進位之後 為 0111 
 	#也就是
-	#Y0		Y1		Y2		Y3 
+	#Y0	Y1	Y2	Y3 
 	#LOW	HIGH	HIGH	HIGH
 	#
 	#
@@ -49,7 +49,7 @@ plc.Write_coils('Y',0,4,7)
 	#plc.Write_coils('Y',2,4,5)
 	#也就是 Y2開始 共 4 個 ；5 轉 2進位之後 為 0110
 	#也就是
-	#Y2		Y3		Y4		Y5
+	#Y0	Y1	Y2	Y3 
 	#LOW	HIGH	HIGH	LOW
 
 
