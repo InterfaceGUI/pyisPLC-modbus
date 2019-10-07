@@ -1,5 +1,5 @@
 # py-isPLC
-一個isPLC的Python模組(modbus版本)
+一個 [isPLC](https://blog.xuite.net/plcduino/blog) 的Python模組(modbus版本)
 
 目前可用方法:
 
