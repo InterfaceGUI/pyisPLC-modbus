@@ -3,6 +3,8 @@ try:
 except ImportError:
     raise ImportError('請安裝pip模組')
 
+
+
 try:
 
     import serial
@@ -23,13 +25,17 @@ except ImportError:
     pip(['install', '--user', 'crcmod'])
     import crcmod
 
-import time
-import sys
-import math
+import time,sys,math,asyncio
+
+
+def Bin(x):
+    ''' dec to bin list'''
+    return [int(d) for d in str(bin(x))[2:].zfill(8)]
 
 
 def crc(byte):
     ''' 
+    [ (H) , (L) ] \n
     crc(bytes([0x1,0x11])) == 192,44
     '''
     # ['modbus','CrcModbus',0x18005,REVERSE,0xFFFF,0x0000,0x4B37]
@@ -40,7 +46,7 @@ def crc(byte):
     re2 = crhex.upper()[2:]
     if re2 =='':
         re2 = '0'
-    return str(int(re2, base=16))+','+str(int(re, base=16))
+    return [ int(re2, base=16) , int(re, base=16) ]
 
 
 def byteTObin(n):
@@ -74,16 +80,18 @@ class ClassCGS_isPLC():
             ser.write(bytes([ID0, 17, 192, 44]))
             time.sleep(0.05)
 
+
             if not ser.readable():
                 continue
 
             try:
                 
-                r = ser.read(8)
+                r = ser.read_all()
+        
                 if r == b'':
                     continue
-
-                for i in r:
+                
+                for i in r[:-2]:
                     mes = mes + str(i) + ','
                 mes = mes.split(',')
                 if mes[3] == '255':
@@ -106,10 +114,11 @@ class ClassCGS_isPLC():
         except:
             pass
 
+
     def Read_coil(self, Element):
         '''
         `Element` 為元件，
-        回傳 int (`0` or `1`)\n
+        回傳 bool (`0` or `1`)\n
         { Y、X、M、T、S、C }\n\n
         用法；\n
         取得 `Y5`狀態\n
@@ -117,15 +126,24 @@ class ClassCGS_isPLC():
         '''
 
         if Element[:1] == 'Y':
+
             ra = Read_ALL_coil().readY()
-            return int(ra[int(Element[1:])])
+            n = int(Element[1:])
+            return bool(int(ra[n]))
+
         elif Element[:1] == 'X':
+
             ra = Read_ALL_coil().readX()
-            return int(ra[int(Element[1:])])
+            n = int(Element[1:])
+            return bool(int(ra[n]))
+
         elif Element[:1] == 'M':
+
             ra = Read_ALL_coil().readM(int(Element[1:]))
             return int(ra[int(Element[1:])%8])
+
         elif Element[:1] == 'T':
+
             ra = Read_ALL_coil().readT()
             return int(ra[int(Element[1:])])
 
@@ -210,48 +228,97 @@ class ClassCGS_isPLC():
             pass
             raise RuntimeError('功能尚未完成')
 
+
+#---------傳輸資料與接收----------------------------------------------------
+
+def SendD(DataList):
+    ''' [ID , Func_code , d0 , d1 , ... , d4 ,d5 ] '''
+    DataList = list(DataList)
+    
+    ##CRC計算
+    crcs = crc(bytes(DataList))
+
+    DataList.append(crcs[0])
+    DataList.append(crcs[1])
+    
+    ser.write(
+        bytes(DataList)
+    )
+
+    while not ser.in_waiting:
+        pass
+    r = list(ser.read_all())
+
+    ##傳送錯誤
+    #if r == [1, 135, 1, 130, 48]:
+    #    print('Error:',DataList)
+    #    return
+
+    
+    crcs = crc(bytes(r[:-2]))
+    if not crcs == r[-2:]:
+        print('Error:',DataList)
+        return None
+    
+
+    return r[:-2]
+
+    #--------------------------------------------------------------------------
+
+
+
 # 內部傳送 讀取線圈區塊
 
 
 class Read_ALL_coil():
+
     # bytes(ID , Func_code , E, E, E, E, CRC {H} , CRC {L} ])
-    ##########################################################################
+    # func_code 0x01 取輸出元件線圈狀態
+    #   Read Y0 ~ Y6
+    #####################################################################
+    #           #   ID  #  funcCode #    addr   #  element  #   CRC     #
+    # Commands  #--------#----------#-----------#-----------#-----------#
+    #           #        #   0x01   # (5) # (0) # (0) # (6) # (H) # (L) #
+    #####################################################################
+
     def readY(self):
-        crcs = crc(bytes([ID0, 1, 5, 0, 0, 6])).split(',')  # 取得CRC16
-        ser.write(
-            bytes([ID0, 1, 5, 0, 0, 6, int(crcs[0]), int(crcs[1])]))  # 傳送資料
-        time.sleep(0.0005)  # 等0.5ms 等到isplc回應
 
-        r = ser.read(6)  # 讀取後6個byte
-        data = ''
+        rec = SendD([ID0,1,5,0,0,6])
+        #[1,1,1,0] = ID , FuncCode , ByteNum ,status → 8進位
 
-        for i in r:
-            data = data + str(i) + ','
-        res = data[:-1].split(',')
-        ret = ''
-        # 顛倒排序
-        for i in str(bin(int(res[3]))).replace('0b', '').zfill(6):
-            ret = i + ret
+        ret = list()
+        
+        ret = Bin(rec[3])
+        if not rec[3] == 0:
+            ret.reverse()
+            return ret
+
         return ret
     ##########################################################################
-
+    # bytes(ID , Func_code , E, E, E, E, CRC {H} , CRC {L} ])
+    # func_code 0x01 取輸出元件線圈狀態
+    #   Read x0 ~ X6
+    #####################################################################
+    #           #   ID  #  funcCode #    addr   #  element  #   CRC     #
+    # Commands  #--------#----------#-----------#-----------#-----------#
+    #           #        #   0x02   # (4) # (0) # (0) # (6) # (H) # (L) #
+    #####################################################################
     def readX(self):
-        crcs = crc(bytes([ID0, 2, 4, 0, 0, 6])).split(',')
-        ser.write(bytes([ID0, 2, 4, 0, 0, 6, int(crcs[0]), int(crcs[1])]))
-        time.sleep(0.05)
+        rec = SendD([ID0,2,4,0,0,6])
+        #[1,1,1,0] = ID , FuncCode , ByteNum ,status → 8進位
 
-        r = ser.read(6)
-        data = ''
+        ret = list()
+        
+        ret = Bin(rec[3])
+        if not rec[3] == 0:
+            ret.reverse()
+            return ret
 
-        for i in r:
-            data = data + str(i) + ','
-        res = data[:-1].split(',')
-        ret = ''
-        # 顛倒排序
-        for i in str(bin(int(res[3]))).replace('0b', '').zfill(6):
-            ret = i + ret
         return ret
     ##########################################################################
+
+
+    
     # 0  1  2  3  4  5  6  7
     # 8  9  10 11 12 13 14 15
     # 16 17 18 19 20 21 22 23
@@ -442,4 +509,8 @@ class Write_All_coils():
                 bytes([ID0, 5, 0xE, Element, 0, 0xFF, int(crcs[0]), int(crcs[1])]))  # 傳送資料
         time.sleep(0.01)
         rrr = ser.read_all()
-        
+
+
+
+
+
