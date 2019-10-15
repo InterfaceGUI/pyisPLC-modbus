@@ -4,7 +4,6 @@ except ImportError:
     raise ImportError('請安裝pip模組')
 
 
-
 try:
 
     import serial
@@ -28,6 +27,7 @@ except ImportError:
 import time,sys,math,asyncio
 
 
+
 def Bin(x):
     ''' dec to bin list'''
     return [int(d) for d in str(bin(x))[2:].zfill(8)]
@@ -39,26 +39,13 @@ def crc(byte):
     crc(bytes([0x1,0x11])) == 192,44
     '''
     # ['modbus','CrcModbus',0x18005,REVERSE,0xFFFF,0x0000,0x4B37]
-    crc16 = crcmod.mkCrcFun(0x18005, rev=True, initCrc=0xFFFF, xorOut=0x0000)
     cr = crc16(byte)
-    crhex = str(hex(cr)).replace("0x", '').zfill(4)
-    re = crhex.upper()[:2]
-    re2 = crhex.upper()[2:]
+    crhex = str(hex(cr))[2:].zfill(4).upper()
+    re = crhex[:2]
+    re2 = crhex[2:]
     if re2 =='':
         re2 = '0'
     return [ int(re2, base=16) , int(re, base=16) ]
-
-
-def byteTObin(n):
-    return str(bin(int(n))).replace('0b', '').zfill(8)
-
-
-def reverse(s):
-    '''反轉字串'''
-    out = ''
-    for i in s:
-        out = i + out
-    return out
 
 
 class ClassCGS_isPLC():
@@ -67,7 +54,9 @@ class ClassCGS_isPLC():
     def __init__(self, ID=0x01):
         self.Version = '請使用isPLC核心，或重新更新韌體。'
         global ID0
+        global crc16
         ID0 = ID
+        crc16 = crcmod.mkCrcFun(0x18005, rev=True, initCrc=0xFFFF, xorOut=0x0000)
 
     def open(self, Port):
         '''開啟新的序列埠連線。'''
@@ -138,16 +127,19 @@ class ClassCGS_isPLC():
             return bool(int(ra[n]))
 
         elif Element[:1] == 'M':
+            n = int(Element[1:])
+            ra = Read_ALL_coil().readM(n)
+            n = n %8
 
-            ra = Read_ALL_coil().readM(int(Element[1:]))
-            return int(ra[int(Element[1:])%8])
+            return bool(int(ra[n]))
 
         elif Element[:1] == 'T':
 
             ra = Read_ALL_coil().readT()
-            return int(ra[int(Element[1:])])
+            n = int(Element[1:])
+            return bool(int(ra[n]))
 
-    def Read_coils(self, Elements , ID):
+    def Read_coils(self, Elements):
         '''
         `Element` 為元件，
         回傳格式為 int [0,1,0,1]\n
@@ -159,10 +151,11 @@ class ClassCGS_isPLC():
 
         if Elements == 'Y':
             ra = Read_ALL_coil().readY()
-            listitem = []
-            for i in ID:
-                listitem.append(int(ra[int(i)]))
-            return listitem
+            return [bool(d) for d in ra[:-2]]
+
+        if Elements == 'X':
+            ra = Read_ALL_coil().readX()
+            return [bool(d) for d in ra[:-2]]
 
         elif Elements == 'M':
             listitem = []
@@ -171,6 +164,10 @@ class ClassCGS_isPLC():
                 ra = Read_ALL_coil().readM(int(i))
                 listitem.append(int(ra[int(i)%8]))
             return listitem
+
+        elif Elements == 'T':
+            ra = Read_ALL_coil().readY()
+            return [bool(d) for d in ra[:-2]]
 
     def Write_coil(self,Element,ID,Bool):
         '''
@@ -233,13 +230,11 @@ class ClassCGS_isPLC():
 
 def SendD(DataList):
     ''' [ID , Func_code , d0 , d1 , ... , d4 ,d5 ] '''
-    DataList = list(DataList)
-    
+    #DataList = list(DataList)
     ##CRC計算
     crcs = crc(bytes(DataList))
+    DataList +=  crcs
 
-    DataList.append(crcs[0])
-    DataList.append(crcs[1])
     
     ser.write(
         bytes(DataList)
@@ -256,7 +251,7 @@ def SendD(DataList):
 
     
     crcs = crc(bytes(r[:-2]))
-    if not crcs == r[-2:]:
+    if crcs != r[-2:]:
         print('Error:',DataList)
         return None
     
@@ -334,109 +329,72 @@ class Read_ALL_coil():
 
         # ---------------------------------
         Em = [0, 8, 16, 24, 32, 40, 48]
-        rrr = ser.read_all()
 
         if num <=7:
-
-            crcs = crc(bytes([ID0, 1, 8, 0, 0, 8])).split(',')
-                # 傳送資料 格式為bytes([ID, func, 元件,位置, 讀取元,件數量, CRC`H`, CRC`L`)])
-            ser.write(
-                bytes([ID0, 1, 8, 0, 0, 8, int(crcs[0]), int(crcs[1])]))
-
+            r = SendD([ID0, 1, 8, 0, 0, 8])
 
         elif num >= 8 and num <= 15:
-            crcs = crc(bytes([ID0, 1, 8, 8, 0, 8])).split(',')
-                # 傳送資料 格式為bytes([ID, func, 元件,位置, 讀取元,件數量, CRC`H`, CRC`L`)])
-            ser.write(
-                bytes([ID0, 1, 8,8, 0, 8, int(crcs[0]), int(crcs[1])]))
+            r = SendD([ID0, 1, 8, 8, 0, 8])
 
         elif num >= 16 and num <=23 :
-            crcs = crc(bytes([ID0, 1, 8, 16, 0, 8])).split(',')
-                # 傳送資料 格式為bytes([ID, func, 元件,位置, 讀取元,件數量, CRC`H`, CRC`L`)])
-            ser.write(
-                bytes([ID0, 1, 8, 16, 0, 8, int(crcs[0]), int(crcs[1])]))
+            r = SendD([ID0, 1, 8, 16, 0, 8])
 
         elif num >= 24 and num <=31 :
-            crcs = crc(bytes([ID0, 1, 8, 24, 0, 8])).split(',')
-                # 傳送資料 格式為bytes([ID, func, 元件,位置, 讀取元,件數量, CRC`H`, CRC`L`)])
-            ser.write(
-                bytes([ID0, 1, 8, 24, 0, 8, int(crcs[0]), int(crcs[1])]))
+            r = SendD([ID0, 1, 8, 24, 0, 8])
 
         elif num >=32 and num <=39 :
-            crcs = crc(bytes([ID0, 1, 8, 32, 0, 8])).split(',')
-                # 傳送資料 格式為bytes([ID, func, 元件,位置, 讀取元,件數量, CRC`H`, CRC`L`)])
-            ser.write(
-                bytes([ID0, 1, 8, 32, 0, 8, int(crcs[0]), int(crcs[1])]))
+            r = SendD([ID0, 1, 8, 32, 0, 8])
 
         elif num >=40 and num <= 47:
-            crcs = crc(bytes([ID0, 1, 8, 40, 0, 8])).split(',')
-                # 傳送資料 格式為bytes([ID, func, 元件,位置, 讀取元,件數量, CRC`H`, CRC`L`)])
-            ser.write(
-                bytes([ID0, 1, 8, 40, 0, 8, int(crcs[0]), int(crcs[1])]))
+            r = SendD([ID0, 1, 8, 40, 0, 8])
 
         elif num >=48 and num <= 49:
-                crcs = crc(bytes([ID0, 1, 8, 48, 0, 8])).split(',')
-                # 傳送資料 格式為bytes([ID, func, 元件,位置, 讀取元,件數量, CRC`H`, CRC`L`)])
-                ser.write(
-                    bytes([ID0, 1, 8, 48, 0, 8, int(crcs[0]), int(crcs[1])]))
+            r = SendD([ID0, 1, 8, 48, 0, 8])
 
-        r = ser.read(7)
-        rrr = ser.read_all()
-        data = ''
-        for i in r:
-            data = data + str(i) + ','
-        res = data[:-1].split(',')
 
-        if num >= 48:
-            OutCoil += str(bin(int(res[3]))).replace('0b', '').zfill(2)[::-1]
-        else:
-            OutCoil += str(byteTObin(res[3]))[::-1]
-        return OutCoil
-    ##########################################################################
+        ret = list()
+        
+        ret = Bin(r[3])
+        if not r[3] == 0:
+            ret.reverse()
+            return ret
 
+        return ret
+
+    #####################################################################
+    # bytes(ID , Func_code , E, E, E, E, CRC {H} , CRC {L} ])           #
+    # func_code 0x01 取輸出元件線圈狀態
+    #   Read T ~ T9                                                     #
+    #####################################################################
+    #           #   ID  #  funcCode #    addr   #  element  #   CRC     #
+    # Commands  #--------#----------#-----------#-----------#-----------#
+    #           #        #   0x01   # (6) # (0) # (0) # (0) # (H) # (L) #
+    #####################################################################
     def readT(self):
-        ret = ''
-        OutCoil = ''
-        ReturnOutCoil = ''
-
+        re = []
         Em = [0, 10]
         for ci in range(2):
-            # 計算CR
-            crcs = crc(bytes([ID0, 1, 6, Em[ci], 0, 10])).split(',')
-            # 傳送資料 格式為bytes([ID, func, 元件,位置, 讀取元,件數量, CRC`H`, CRC`L`)])
-            ser.write(
-                bytes([ID0, 1, 6, Em[ci], 0, 10, int(crcs[0]), int(crcs[1])]))
 
-            time.sleep(0.05)
-            r = ser.read(7)
-            rrr = ser.read_all()
-            c = 0
-            data = ''
-            for i in r:
-                data = data + str(i) + ','
-            res = data[:-1].split(',')
+            r = SendD([ID0, 1, 6, Em[ci], 0, 10])
 
-            ret = str(bin(int(res[4]))).replace('0b', '').zfill(2)
-            if res[4] == '4':
-                OutCoil = ret[1:]
-            else:
-                OutCoil = ret
+            ret = list()
+            ret = Bin(r[3])
+            ret2 = [int(d) for d in str(bin(r[4]))[2:].zfill(2)]
+            rrr = ret2 + ret
+            rrr.reverse()
+            re =  re + rrr
 
-            OutCoil = OutCoil + byteTObin(res[3])
-            ReturnOutCoil = OutCoil + ReturnOutCoil
-
-        pass
-        return reverse(ReturnOutCoil)
+        return re
 
     ##########################################################################
 
 class Write_All_coils():
 
     def WritesY(self,ID,num,B):
-        crcs = crc(bytes([ID0, 15, 5, ID, 0, num, 1, B])).split(',')
-        ser.write(
-            bytes([ID0, 15, 5, ID, 0, num, 1, B, int(crcs[0]), int(crcs[1])]))  # 傳送資料
-        rrr = ser.read_all()
+
+        re = SendD([ ID0 , 15 , 5 , ID , 0 , num , 1 , B ])
+        
+
         pass
 
     #恩。... 我知道下面很沒效率 浪費程式空間 之後我再來優化
@@ -457,16 +415,12 @@ class Write_All_coils():
     def WriteY(self,Element,Bool):
 
         if Bool :
-            crcs = crc(bytes([ID0, 5, 5, Element,  0xFF, 0])).split(',')
-            ser.write(
-                bytes([ID0, 5, 5, Element,  0xFF,0, int(crcs[0]), int(crcs[1])]))  # 傳送資料
+            rr = SendD([ID0, 5, 5, Element,  0xFF, 0])
+
             
         else:
-            crcs = crc(bytes([ID0, 5, 5, Element, 0, 0xFF])).split(',')
-            ser.write(
-                bytes([ID0, 5, 5, Element, 0, 0xFF, int(crcs[0]), int(crcs[1])]))  # 傳送資料
-        time.sleep(0.01)
-        rrr = ser.read_all()
+            rr = SendD([ID0, 5, 5, Element, 0, 0xFF])
+
 
     def WriteM(self,Element,Bool):
 
