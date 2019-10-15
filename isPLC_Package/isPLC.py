@@ -142,7 +142,7 @@ class ClassCGS_isPLC():
     def Read_coils(self, Elements):
         '''
         `Element` 為元件，
-        回傳格式為 int [0,1,0,1]\n
+        回傳格式為 bool [0,1,0,1]\n
         元件線圈{ Y、X、M、T、S、C }\n\n
         用法；\n
         取得 `Y0`、`Y1`、`Y2`狀態\n
@@ -157,17 +157,34 @@ class ClassCGS_isPLC():
             ra = Read_ALL_coil().readX()
             return [bool(d) for d in ra[:-2]]
 
-        elif Elements == 'M':
-            listitem = []
-            
-            for i in ID:
-                ra = Read_ALL_coil().readM(int(i))
-                listitem.append(int(ra[int(i)%8]))
-            return listitem
+        elif Elements[0] == 'M':
+            if Elements == 'M0':
+                ra = Read_ALL_coil().readM(0)
+            elif Elements == 'M1':
+                ra = Read_ALL_coil().readM(8)
+            elif Elements == 'M2':
+                ra = Read_ALL_coil().readM(16)
+            elif Elements == 'M3':
+                ra = Read_ALL_coil().readM(24)
+            elif Elements == 'M4':
+                ra = Read_ALL_coil().readM(32)
+            elif Elements == 'M5':
+                ra = Read_ALL_coil().readM(40)
+            elif Elements == 'M6':
+                ra = Read_ALL_coil().readM(48)
+            return [bool(d) for d in ra]
+
 
         elif Elements == 'T':
-            ra = Read_ALL_coil().readY()
-            return [bool(d) for d in ra[:-2]]
+            ra = Read_ALL_coil().readT()
+            return [bool(d) for d in ra]
+
+    def ReadRegister(Self,ID):
+        ra = Registers().ReadSingle(ID)
+        return ra
+    
+    def Write_Register(self,ID , Vaule ):
+        Registers().WriteSingle(ID,Vaule)
 
     def Write_coil(self,Element,ID,Bool):
         '''
@@ -207,11 +224,11 @@ class ClassCGS_isPLC():
         '''
         if Element == 'Y':
             re = str(bin(Bools)).replace('0b','').zfill(4)[::-1]
-            Write_All_coils().WritesY(ID,amount,Bools)
+            Write_All_coils().WriteList_Y(ID,amount,Bools)
 
         elif Element == 'S':
-            pass
-            raise RuntimeError('功能尚未完成')
+            re = str(bin(Bools)).replace('0b','').zfill(4)[::-1]
+            Write_All_coils().WriteList_S(ID,amount,Bools)
 
         elif Element == 'M':
             pass
@@ -389,82 +406,78 @@ class Read_ALL_coil():
     ##########################################################################
 
 class Write_All_coils():
+    
+    def __init__(self):
+        global TrueFalse
+        TrueFalse = [[0,255],[255,0]]
 
-    def WritesY(self,ID,num,B):
+    #####################################################################
+    # bytes(ID , Func_code , E, E, E, E, CRC {H} , CRC {L} ])           #
+    # func_code 0x01 取輸出元件線圈狀態
+    #   Write Multiple coil                                             #
+    #############################################################################################
+    #           #   ID  #  funcCode #    addr   #  num      #    Byte   #  status   #   CRC     #
+    # Commands  #--------#----------#-----------#-----------#-----------#-----------#-----------#
+    #           #        #   0x01   # (6) # (0) # (0) # (0) #     N     #           # (H) # (L) #
+    #############################################################################################
+
+    def WriteList_Y(self,ID,num,B):
 
         re = SendD([ ID0 , 15 , 5 , ID , 0 , num , 1 , B ])
         
 
-        pass
+    def WriteList_S(self,ID,num,B):
 
-    #恩。... 我知道下面很沒效率 浪費程式空間 之後我再來優化
+        re = SendD([ ID0 , 15 , 0 , ID , 0 , num , 1 , B ])
+
+
     def WriteS(self,Element,Bool):
-
-        if Bool :
-            crcs = crc(bytes([ID0, 5, 0, Element,  0xFF, 0])).split(',')
-            ser.write(
-                bytes([ID0, 5, 0, Element,  0xFF,0, int(crcs[0]), int(crcs[1])]))  # 傳送資料
-            
-        else:
-            crcs = crc(bytes([ID0, 5, Element, 0, 0, 0xFF])).split(',')
-            ser.write(
-                bytes([ID0, 5, 0, 0, Element, 0xFF, int(crcs[0]), int(crcs[1])]))  # 傳送資料
-        time.sleep(0.01)
-        rrr = ser.read_all()
-
+        SendD([ID0, 5, 0, Element] + TrueFalse[int(Bool)])
+    
     def WriteY(self,Element,Bool):
-
-        if Bool :
-            rr = SendD([ID0, 5, 5, Element,  0xFF, 0])
-
-            
-        else:
-            rr = SendD([ID0, 5, 5, Element, 0, 0xFF])
-
+        SendD([ID0, 5, 5, Element] + TrueFalse[int(Bool)])
 
     def WriteM(self,Element,Bool):
-
-        if Bool :
-            crcs = crc(bytes([ID0, 5, 8, Element,  0xFF, 0])).split(',')
-            ser.write(
-                bytes([ID0, 5, 8, Element,  0xFF,0, int(crcs[0]), int(crcs[1])]))  # 傳送資料
-            
-        else:
-            crcs = crc(bytes([ID0, 5, 8, Element, 0, 0xFF])).split(',')
-            ser.write(
-                bytes([ID0, 5, 8, Element, 0, 0xFF, int(crcs[0]), int(crcs[1])]))  # 傳送資料
-        time.sleep(0.01)
-        rrr = ser.read_all()
+        SendD([ID0, 5, 8, Element] + TrueFalse[int(Bool)])
 
     def WriteT(self,Element,Bool):
-
-        if Bool :
-            crcs = crc(bytes([ID0, 5, 6, Element,  0xFF, 0])).split(',')
-            ser.write(
-                bytes([ID0, 5, 6, Element,  0xFF,0, int(crcs[0]), int(crcs[1])]))  # 傳送資料
-            
-        else:
-            crcs = crc(bytes([ID0, 5, 6, Element, 0, 0xFF])).split(',')
-            ser.write(
-                bytes([ID0, 5, 6, Element, 0, 0xFF, int(crcs[0]), int(crcs[1])]))  # 傳送資料
-        time.sleep(0.01)
-        rrr = ser.read_all()
-        
+        SendD([ID0, 5, 6, Element] + TrueFalse[int(Bool)])
+                
     def WriteC(self,Element,Bool):
-
-        if Bool :
-            crcs = crc(bytes([ID0, 5, 0xE, Element,  0xFF, 0])).split(',')
-            ser.write(
-                bytes([ID0, 5, 0xE, Element,  0xFF,0, int(crcs[0]), int(crcs[1])]))  # 傳送資料
-            
-        else:
-            crcs = crc(bytes([ID0, 5, 0xE, Element, 0, 0xFF])).split(',')
-            ser.write(
-                bytes([ID0, 5, 0xE, Element, 0, 0xFF, int(crcs[0]), int(crcs[1])]))  # 傳送資料
-        time.sleep(0.01)
-        rrr = ser.read_all()
+        SendD([ID0, 5, 0xE, Element] + TrueFalse[int(Bool)])
+        
 
 
+#----------------------------------------------------------------------
 
 
+class Registers():
+
+
+    #####################################################################
+    # bytes(ID , Func_code , E, E, E, E, CRC {H} , CRC {L} ])           #
+    # func_code 0x01 取輸出元件線圈狀態
+    #   Read D                                                     #
+    #####################################################################
+    #           #   ID  #  funcCode #    addr   #    num    #   CRC     #
+    # Commands  #--------#----------#-----------#-----------#-----------#
+    #           #        #   0x04   # (16) # (0)# (0) # (1) # (H) # (L) #
+    #####################################################################
+    def ReadSingle(self,d):
+
+        r = SendD([ID0, 4, 16, d, 0, 1])
+
+        r1 = str(bin(r[3]))[2:]
+        r2 = str(bin(r[4]))[2:].zfill(8)
+        rrr = r1+r2
+
+        return int(rrr,base=2)
+
+
+
+    def WriteSingle(self,d , vaule):
+        date = str(bin(vaule)[2:].zfill(16))
+        L = int(date[8:],base = 2)
+        H = int(date[6:8],base = 2)
+        r = SendD([ID0, 6, 16, d, H, L])
 
