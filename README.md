@@ -1,14 +1,19 @@
 # py-isPLC
 一個 [isPLC](https://blog.xuite.net/plcduino/blog) 的Python模組(modbus版本)
 
-### `目前只適用於 Modbus 版本! 其他版本無法使用`
+
 目前可用方法:
 
 ```python
+open()
+close()
 Read_coil()
 Read_coils()
+ReadRegister()
 Write_coil()
 Write_coils()
+Write_Register()
+
 ```
 目前能夠讀取 M 、 Y 、X 、T
 
@@ -18,12 +23,12 @@ import isPLC_Package.isPLC
 plc = isPLC_Package.isPLC.ClassCGS_isPLC()
 
 #指定設備ID
-#plc = isPLC.ClassCGS_isPLC(0x02)
+#plc = isPLC.ClassCGS_isPLC(0x01)
 
 
 plc.open('COM3')
 
-print(plc.Version)
+print(plc.Version) #顯示版本
 
 #讀取元件
 print(plc.Read_coil('M0'))
@@ -32,47 +37,25 @@ print(plc.Read_coil('X3'))
 print(plc.Read_coil('T10'))
 
 #讀取元件陣列
-print(plc.Read_coils(['M','0','1','2','3','4','5','6','7','8','9','10','11','12']))
-print(plc.Read_coils(['Y','0','1','2','3','4','5']))
-plc.close()
+print(plc.Read_coils('M0')) # M0 ~ M7
+print(plc.Read_coils('M1')) # M8 ~ M15
+print(plc.Read_coils('Y'))  # Y0 ~ Y6
+
 
 #寫入元件
 plc.Write_coil('Y',0,True)
 plc.Write_coil('Y',1,True)
 plc.Write_coil('Y',2,False)
+plc.Write_coil('M',1,True)
 
-#寫入元件陣列
-plc.Write_coils('Y',0,4,7)
-	#也就是 Y0開始 共 4 個 ；"7" 轉 2進位之後 為 0111 
-	#也就是
-	#Y0	Y1	Y2	Y3 
-	#LOW	HIGH	HIGH	HIGH
-	# 0	 1	 1	 1
-	#
-#例2: 
-	#plc.Write_coils('Y',2,4,5)
-	#也就是 Y2開始 共 4 個 ；5 轉 2進位之後 為 0110
-	#也就是
-	#Y0	Y1	Y2	Y3 
-	#LOW	HIGH	HIGH	LOW
-	# 0	 1	 1 	 0
+#讀取暫存器
+print(plc.ReadRegister(0)) # 讀取D0
+
+#寫入暫存器
+plc.Write_Register(0,1024) #將 1024 寫入 D0
+plc.Write_Register(1,50)   #將 50 寫入 D1
 
 
-## 七段顯示器 0~9 9~0 重複
-
-while 1:
-  for i in range(0,9):
-    plc.Write_coils('Y',0,4,i)
-    time.sleep(0.5)
-
-  for i in range(9,0,-1):
-    plc.Write_coils('Y',0,4,i)
-    time.sleep(0.5)
-	
-## 7447 接腳 -> 
-### Y	0	1	2	3
-###	A	B	C	D
-	
-
+plc.close() #關閉連線
 
 ```
