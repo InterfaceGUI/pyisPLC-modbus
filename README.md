@@ -1,7 +1,7 @@
 # py-isPLC
 一個 [isPLC](https://blog.xuite.net/plcduino/blog) 的Python模組(modbus版本)
 
-### `目前只支援 版本為 2.0.0 版本! 其他版本無法使用`
+### `目前只適用於 Modbus 版本! 其他版本無法使用`
 目前可用方法:
 
 ```python
