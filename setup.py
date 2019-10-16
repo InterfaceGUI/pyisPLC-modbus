@@ -8,7 +8,7 @@ setuptools.setup(
     author='LarsHagrid',
     author_email='interfacegui@gmail.com',
     license='GNU Lesser General Public License v3.0',
-    packages=['isPLC'],
+    packages=['isPLC_Package'],
     install_requires=[
         'crcmod>=1.7',
         'pyserial>=3.4'
