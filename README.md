@@ -1,8 +1,12 @@
 # py-isPLC
 一個 [isPLC](https://blog.xuite.net/plcduino/blog) 的Python模組(modbus版本)
 
+## 安裝方法
 
-目前可用方法:
+#### 使用pip安裝：
+```pip install git+https://github.com/InterfaceGUI/pyisPLC-modbus.git```
+
+## 用法
 
 ```python
 open()
