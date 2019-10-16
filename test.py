@@ -13,11 +13,11 @@ plc.open('COM3')
 
 print(plc.Version)
 time.sleep(4)
-
+plc.
 while 1:
-    for i in range(1023):
-        plc.Write_Register(1,i)
-        print(plc.ReadRegister(1))
+    for i in range(513):
+        plc.Write_Register(0,i*2)
+        print(plc.ReadRegister(0))
 
 
 while 0:

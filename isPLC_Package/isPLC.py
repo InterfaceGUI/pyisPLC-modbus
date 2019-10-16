@@ -180,17 +180,26 @@ class ClassCGS_isPLC():
             return [bool(d) for d in ra]
 
     def ReadRegister(Self,ID):
+        ''' 讀取指定暫存器 \n
+            用法：
+                讀取D0 → ReadRegister(0)
+            結果：
+                0 ~ 1023
+        '''
         ra = Registers().ReadSingle(ID)
         return ra
     
     def Write_Register(self,ID , Vaule ):
+        ''' 寫入指定暫存器 \n
+            用法：
+                D1 寫入 500 → Write_Register(1,500)
+        '''
+
         Registers().WriteSingle(ID,Vaule)
 
     def Write_coil(self,Element,ID,Bool):
         '''
-        注意: 此方法數度慢\n
-        每次大約有 0.01秒延時
-        若要進行快速大量傳送 請用 Write_coils\n\n
+        若要進行大量傳送 請用 Write_coils\n\n
         `Element` 為元件，
         元件線圈{ Y、M、T、S、C }\n\n
         用法；\n
