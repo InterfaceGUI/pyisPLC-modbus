@@ -19,15 +19,14 @@ Write_coils()
 Write_Register()
 
 ```
-目前能夠讀取 M 、 Y 、X 、T
 
-用法:
+範例:
 ```python
 import isPLC_Package.isPLC
 plc = isPLC_Package.isPLC.ClassCGS_isPLC()
 
 #指定設備ID
-#plc = isPLC.ClassCGS_isPLC(0x01)
+plc = isPLC.ClassCGS_isPLC(0x01)
 
 
 plc.open('COM3')
