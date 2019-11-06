@@ -3,7 +3,8 @@
 
 ![](https://img.shields.io/github/issues/InterfaceGUI/pyisPLC-modbus?style=for-the-badge)&nbsp;&nbsp;
 ![](https://img.shields.io/badge/Python-v3.7-blue?style=for-the-badge)&nbsp;&nbsp;
-![](https://img.shields.io/badge/Version-v1.0-orange?style=for-the-badge)
+![](https://img.shields.io/badge/Version-v1.0-green?style=for-the-badge)&nbsp;&nbsp;
+![](https://img.shields.io/github/license/InterfaceGUI/pyisPLC-modbus?style=for-the-badge)
 
 ## 安裝方法
 
