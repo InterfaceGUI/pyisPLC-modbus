@@ -3,7 +3,6 @@ try:
 except ImportError:
     raise ImportError('請安裝pip模組')
 
-
 try:
 
     import serial
