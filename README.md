@@ -1,6 +1,11 @@
 # py-isPLC
 一個 [isPLC](https://blog.xuite.net/plcduino/blog) 的Python模組(modbus版本)
 
+![](https://img.shields.io/github/issues/InterfaceGUI/pyisPLC-modbus?style=for-the-badge)&nbsp;&nbsp;
+![](https://img.shields.io/badge/Python-v3.7-blue?style=for-the-badge)&nbsp;&nbsp;
+![](https://img.shields.io/badge/Version-v1.0-green?style=for-the-badge)&nbsp;&nbsp;
+![](https://img.shields.io/github/license/InterfaceGUI/pyisPLC-modbus?style=for-the-badge)
+
 ## 安裝方法
 
 #### 使用pip安裝：
@@ -19,15 +24,14 @@ Write_coils()
 Write_Register()
 
 ```
-目前能夠讀取 M 、 Y 、X 、T
 
-用法:
+範例:
 ```python
 import isPLC_Package.isPLC
 plc = isPLC_Package.isPLC.ClassCGS_isPLC()
 
 #指定設備ID
-#plc = isPLC.ClassCGS_isPLC(0x01)
+plc = isPLC.ClassCGS_isPLC(0x01)
 
 
 plc.open('COM3')
